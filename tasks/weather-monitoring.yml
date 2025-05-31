@@ -1,0 +1,39 @@
+---
+- name: Create weather monitoring directory
+  ansible.builtin.file:
+    path: "{{ config_dir }}/openweather-exporter"
+    state: directory
+    mode: 0755
+  become: false
+
+- name: Copy OpenWeatherMap exporter Docker Compose file
+  ansible.builtin.template:
+    src: templates/openweather-exporter-docker-compose.yml.j2
+    dest: "{{ config_dir }}/openweather-exporter/docker-compose.yml"
+    mode: 0644
+  notify: Restart weather monitoring
+  become: false
+  
+- name: Copy weather & internet connectivity dashboard to Grafana
+  ansible.builtin.copy:
+    src: files/weather-connectivity.json
+    dest: "{{ config_dir }}/internet-monitoring/grafana/provisioning/dashboards/weather-connectivity.json"
+    mode: 0644
+  notify: Restart internet-monitoring
+  become: false
+
+- name: Update Grafana dashboards configuration to include new dashboard
+  ansible.builtin.lineinfile:
+    path: "{{ config_dir }}/internet-monitoring/grafana/provisioning/dashboards/dashboard.yml"
+    regexp: '.*weather-connectivity\.json.*'
+    insertafter: '      - name: internet-connection'
+    line: '      - name: weather-connectivity'
+  notify: Restart internet-monitoring
+  become: false
+
+- name: Ensure OpenWeatherMap exporter environment is running
+  community.docker.docker_compose_v2:
+    project_src: "{{ config_dir }}/openweather-exporter/"
+    build: never
+  become: false
+  when: openweather_enable | bool

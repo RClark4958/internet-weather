@@ -1,0 +1,20 @@
+# {{ ansible_managed }}
+version: '3'
+
+services:
+  openweather-exporter:
+    image: billykwooten/openweather-exporter:latest
+    restart: always
+    ports:
+      - "9091:9091"
+    environment:
+      - "OW_APIKEY={{ openweather_apikey }}"
+      - "OW_CITY={{ openweather_city }}"
+      - "OW_UNITS={{ openweather_units | default('metric') }}"
+      - "OW_INTERVAL={{ openweather_interval | default('60s') }}"
+    networks:
+      - internet-monitoring-back-tier
+
+networks:
+  internet-monitoring-back-tier:
+    external: true
